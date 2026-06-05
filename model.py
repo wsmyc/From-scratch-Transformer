@@ -37,3 +37,16 @@ class PositionalEncoding(nn.Module):
         def forward(self, x):
             x = x + self.pe[:, :x.shape[1], :].requires_grad_(False) #add the positional encoding to the input
             return self.dropout(x)
+        
+
+class LayerNorm(nn.Module):
+    def __init__(self, eps: float = 10**-6):
+        super().__init__()
+        self.eps = eps
+        self.alpha = nn.Parameter(torch.ones(1)) #alpha is a learnable parameter that is multiplied to the normalized output
+        self.bias = nn.Parameter(torch.zeros(1)) #bias is a learnable parameter that is added to the normalized output
+
+    def forward(self, x):
+        mean = x.mean(-1, keepdim=True) #calculate the mean of the input
+        std = x.std(-1, keepdim=True) #calculate the standard deviation of the input
+        return self.alpha * (x - mean) / (std + self.eps) + self.bias #return the normalized output multiplied by alpha and added to bias

@@ -50,3 +50,22 @@ class LayerNorm(nn.Module):
         mean = x.mean(-1, keepdim=True) #calculate the mean of the input
         std = x.std(-1, keepdim=True) #calculate the standard deviation of the input
         return self.alpha * (x - mean) / (std + self.eps) + self.bias #return the normalized output multiplied by alpha and added to bias
+    
+
+class FeedForwardBlock(nn.Module):
+    def __init__(self, d_model : int, d_ff : int, dropout : float):
+        super().__init__()
+        self.linear_1 = nn.Linear(d_model, d_ff) #W1 and B1 first linear layer that maps the input to a higher dimension
+        self.dropout = nn.Dropout(dropout) #dropout layer to prevent overfitting
+        self.linear_2 = nn.Linear(d_ff, d_model) #W2 and B2 second linear layer that maps the output back to the original dimension
+
+    def forward(self, x):
+        # (Batch, Selq_Len, d_model) -> (Batch, Seq_Len, d_ff) -> (Batch, Seq_Len, d_model)
+        return self.linear_2(self.dropout(torch.relu(self.linear_1(x)))) #linear1, then relu, then dropout, and finally linear2
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model:int, num_heads:int, dropout:float):
+        super().__init__()
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.dropout = nn.Dropout(dropout)

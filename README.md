@@ -310,7 +310,3 @@ This codebase is intentionally modular. Here are direct ways to extend it:
 
 **License:** MIT  
 **Contributions:** Issues and PRs are welcome. If you use this for research or education, please cite the original *Attention Is All You Need* paper.
-
----
-
-*Built with PyTorch. No black-box `nn.Transformer` modules were harmed in the making of this repository.*

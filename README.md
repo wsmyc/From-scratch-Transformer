@@ -168,7 +168,7 @@ Transformer/
 | `Encoder` | Stack of $N=6$ blocks | Repeat + final LayerNorm |
 | `DecoderBlock` | Decode target autoregressively | Masked Self-Attn → Cross-Attn → FFN |
 | `Decoder` | Stack of $N=6$ blocks | Repeat + final LayerNorm |
-| `ProjectionLayer` | Map to vocabulary | $\text{Linear}(d_{\text{model}}, V_{\mathrm{tgt}}) + \text{log\_softmax}$ |
+| `ProjectionLayer` | Map to vocabulary | $\text{Linear}(d_{\text{model}}, \text{Vocab}) + \text{log\_softmax}$ |
 | `Transformer` | End-to-end assembly | `encode()` → `decode()` → `project()` |
 
 ### `dataset.py` — Data Flow

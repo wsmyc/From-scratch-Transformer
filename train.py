@@ -35,9 +35,11 @@ def get_or_build_tokenizer(config, ds, lang):
 def get_ds(config):
     ds_raw = load_dataset('Helsinki-NLP/opus_books', f'{config["lang_src"]}-{config["lang_tgt"]}', split='train')
 
+    #Here the tokenizers are built
     tokenizer_src = get_or_build_tokenizer(config, ds_raw, config['lang_src'])
     tokenizer_tgt = get_or_build_tokenizer(config, ds_raw, config['lang_tgt'])
 
+    #90% for training, 10% for validation
     train_ds_size = int(0.9 * len(ds_raw))
     val_ds_size = len(ds_raw) - train_ds_size
     train_ds_raw, val_ds_raw = random_split(ds_raw, [train_ds_size, val_ds_size])
@@ -67,7 +69,8 @@ def get_model(config, vocab_src_len, vocab_tgt_len):
     return model
 
 def train_model(config):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #define a device which we'll put all the tensors
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') #so either u have a gpu with cuda or just use your own cpu
     print(f'Using {device}')
     Path(config['model_folder']).mkdir(parents=True, exist_ok=True)
 
@@ -89,6 +92,7 @@ def train_model(config):
         global_step = state['global_step']
 
     loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id('[PAD]'), label_smoothing=0.1).to(device)
+    ##level smoothing works by making the model less confident about its decisions so it does not overfit
 
     for epoch in range(initial_epoch, config['num_epochs']):  # ✅ was config['number_epochs'], key doesn't exist
         model.train()
@@ -99,27 +103,35 @@ def train_model(config):
             decoder_input = batch['decoder_input'].to(device)
             encoder_mask = batch['encoder_mask'].to(device)
             decoder_mask = batch['decoder_mask'].to(device)
+            #the mask's job is to ignore the padding 
 
-            encoder_output = model.encode(encoder_input, encoder_mask)
+
+            #run the tensors through the transformer
+            encoder_output = model.encode(encoder_input, encoder_mask) #(B, seq_len, d_model)
             decoder_output = model.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)
             proj_output = model.project(decoder_output)
 
             label = batch['label'].to(device)
 
+            # B, seq_len, tgt_vocab_size --> B * seq_len, tgt_vocab_size
             loss = loss_fn(proj_output.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
             batch_iterator.set_postfix({f"loss": f"{loss.item():6.3f}"})
 
+            #log the loss
             writer.add_scalar('train loss', loss.item(), global_step)
             writer.flush()
 
-            # ✅ FIX: loss.backward was missing () — it was a reference, not a call
+            #backpropagate the loss
             loss.backward()
 
+
+            #update the weights
             optimizer.step()
             optimizer.zero_grad()
 
             global_step += 1
 
+        #save the model at the end of every epoch
         model_filename = get_weights_file_path(config, f'{epoch:02d}')
         torch.save({
             'epoch': epoch,
